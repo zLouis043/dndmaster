@@ -1,0 +1,34 @@
+# --- Compilazione e Binari ---
+build/
+bin/
+obj/
+out/
+vcpkg_installed/
+
+# --- Visual Studio ---
+.vs/
+*.user
+*.sln
+*.vcxproj
+*.filters
+*.proto.res
+*.sublime-project
+*.sublime-workspace
+
+# --- vcpkg (Se l'hai clonato dentro la cartella del progetto) ---
+vcpkg/
+!vcpkg.json
+
+# --- CMake ---
+CMakeUserPresets.json
+CMakeFiles/
+CMakeCache.txt
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Database locali di test ---
+*.dndcamp
+*.dndchar

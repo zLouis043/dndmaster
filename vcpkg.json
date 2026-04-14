@@ -1,0 +1,20 @@
+{
+  "name": "dndmaster",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "sdl3",
+    {
+      "name": "imgui",
+      "features": [
+        "sdl3-binding",
+        "opengl3-binding",
+        "docking-experimental"
+      ]
+    },
+    "nlohmann-json",
+    "skia",
+    "enet",
+    "sqlitecpp",
+    "glad"
+  ]
+}
