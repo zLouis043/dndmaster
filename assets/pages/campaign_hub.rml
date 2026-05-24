@@ -1,0 +1,66 @@
+<rml>
+<head>
+    <link type="text/rcss" href="style.rcss"/>
+    <style>
+        /* Nuove classi per il layout delle sessioni */
+        .split-layout { display: flex; height: 100%; }
+        .left-col { width: 300px; border-right: 1px #7f8c8d; padding-right: 20px; }
+        .right-col { flex-grow: 1; padding-left: 20px; display: flex; flex-direction: column; }
+        
+        .roster-grid { display: flex; height: 300px; gap: 20px; }
+        .roster-box { flex-grow: 1; background: #1a252f; border: 1px #7f8c8d; padding: 10px; overflow-y: auto; }
+        
+        .list-item.selected { background: #e67e22; border-color: white; }
+    </style>
+</head>
+<body>
+    <div class="panel-container">
+        <div class="tab-bar">
+            <button id="tab_btn_sessions" class="tab-btn active">Sessioni</button>
+            <button id="tab_btn_characters" class="tab-btn">Personaggi / NPC</button>
+            <button id="tab_btn_maps" class="tab-btn">Mappe</button>
+            <button id="btn_back_menu" class="tab-btn" style="background: #c0392b; flex-grow: 0;">Esci</button>
+        </div>
+
+        <div class="tab-content" style="height: 100%;">
+            
+            <div id="panel_sessions" style="display: block; height: 100%;">
+                <div class="split-layout">
+                    <div class="left-col">
+                        <button id="btn_new_session" style="margin-bottom: 15px;">+ Nuova Sessione</button>
+                        <div id="list_sessions" style="overflow-y: auto;"></div>
+                    </div>
+                    
+                    <div class="right-col" id="session_details" style="display: none;">
+                        <h2 id="lbl_session_title" style="color: #e67e22; margin-bottom: 10px;">Titolo Sessione</h2>
+                        <button id="btn_enter_session" style="background: #27ae60; margin-bottom: 20px;">ENTRA IN SESSIONE</button>
+                        
+                        <p style="color: white; margin-bottom: 10px;">Gestione Roster:</p>
+                        <div class="roster-grid">
+                            <div class="roster-box">
+                                <p style="color: #bdc3c7; text-align: center;">Presenti</p>
+                                <div id="list_roster_in" style="min-height: 200px;"></div>
+                            </div>
+                            <div class="roster-box">
+                                <p style="color: #bdc3c7; text-align: center;">Archivio</p>
+                                <div id="list_roster_out" style="min-height: 200px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel_characters" style="display: none;">
+                <button id="btn_new_character" style="margin-bottom: 15px;">+ Nuovo Personaggio</button>
+                <div id="list_characters"></div>
+            </div>
+
+            <div id="panel_maps" style="display: none;">
+                <button id="btn_new_map" style="margin-bottom: 15px;">+ Nuova Mappa VTT</button>
+                <div id="list_maps"></div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</rml>

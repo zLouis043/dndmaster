@@ -1,0 +1,60 @@
+<rml>
+<head>
+    <link type="text/rcss" href="style.rcss"/>
+    <style>
+        body {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #1a1a1a;
+        }
+        .menu-container {
+            width: 400px;
+            padding: 40px;
+            background: #2c3e50;
+            border: 2px #e67e22;
+            border-radius: 10px;
+
+            /* Centra il contenuto (H1 e Bottoni) dentro il box */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        h1 {
+            font-size: 35px;
+            font-effect: outline(2px black);
+            color: #e67e22;
+            margin-bottom: 30px;
+            /* Assicuriamoci che il titolo occupi tutta la larghezza per centrarsi */
+            width: 100%;
+        }
+        button {
+            /* I bottoni ora si centrano grazie all'align-items del container */
+            display: block;
+            width: 100%; 
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #34495e;
+            color: white;
+            border: 1px #4b6584;
+            font-size: 18px;
+        }
+        button:hover {
+            background: #e67e22;
+            border-color: #ff9f43;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <h1>D&D MASTER</h1>
+        <button id="btn_master">Workspace Master (Offline)</button>
+        <button id="btn_player">Workspace Player (Offline)</button>
+        <button id="btn_live">Unisci a Sessione Live</button>
+        <button id="btn_exit">Esci Dal Gioco</button>
+    </div>
+</body>
+</rml>

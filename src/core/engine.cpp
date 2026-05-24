@@ -1,11 +1,10 @@
 #include "engine.h"
-#include "../app/ViewMainMenu.h"
+#include "../app/views/ViewMainMenu.h"
 #include <iostream>
 
-// Backend OpenGL
 #include <glad/glad.h>
+#include <filesystem>
 
-// Include Skia (API Aggiornata v146+ / Ganesh)
 #include <include/gpu/ganesh/GrDirectContext.h>
 #include <include/gpu/ganesh/GrBackendSurface.h>
 #include <include/gpu/ganesh/gl/GrGLInterface.h>
@@ -16,15 +15,25 @@
 #include <include/core/SkSurface.h>
 #include <include/core/SkColorSpace.h>
 
-// Include ImGui
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_opengl3.h>
 
-Engine::Engine() {}
+#include "../ui/framework/ElementSkiaCanvas.h"
+#include "../ui/framework/ElementColorPicker.h"
+#include "./input/InputSystem.h"
+#include "./events/Events.h"
+
+namespace fs = std::filesystem;
+
+Engine::Engine() : m_window("DnDMaster", 1280, 720) {}
 
 Engine::~Engine() {
-    // Ordine di distruzione vitale! Prima la superficie, poi il contesto Skia
+    if (rmlContext) {
+        Rml::RemoveContext(rmlContext->GetName());
+    }
+    Rml::Shutdown();
+
     skiaSurface.reset();
     skiaContext.reset();
 
@@ -32,56 +41,62 @@ Engine::~Engine() {
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    if (gl_context) SDL_GL_DestroyContext(gl_context);
-    if (window) SDL_DestroyWindow(window);
-    SDL_Quit();
+    m_window.destroy();
 }
 
 bool Engine::init() {
-    if (!SDL_Init(SDL_INIT_VIDEO)) return false;
-
-    // Richiediamo a SDL un contesto OpenGL compatibile con Skia (Core Profile)
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // Importante per Skia
-
-    window = SDL_CreateWindow("DnDMaster - Skia Integration", 1280, 720, 
-                              SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
     
-    gl_context = SDL_GL_CreateContext(window);
-    SDL_GL_MakeCurrent(window, gl_context);
-    SDL_GL_SetSwapInterval(1); // VSync
-    
-    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) return false;
+    if (!m_window.init()) return false;
 
-    // --- SETUP SKIA (Sintassi Aggiornata) ---
     auto interface = GrGLMakeNativeInterface();
-    // In Skia 146 usiamo GrDirectContexts (plurale) e passiamo da gl/
     skiaContext = GrDirectContexts::MakeGL(interface);
-    if (!skiaContext) {
-        std::cerr << "Errore creazione contesto Skia!\n";
-        return false;
-    }
-
-    // Creiamo la superficie di disegno iniziale
     int w, h;
-    SDL_GetWindowSizeInPixels(window, &w, &h);
+    SDL_GetWindowSizeInPixels(m_window.getNativeWindow(), &w, &h);
     updateSkiaSurface(w, h);
 
-    SDL_ShowWindow(window);
+    std::string base = SDL_GetBasePath();
+    if (fs::exists(base + "assets/")) {
+        m_assetPath = base + "assets/";
+    } else if (fs::exists(base + "../../assets/")) {
+        m_assetPath = base + "../../assets/";
+    } else {
+        m_assetPath = "./assets/"; 
+    }
+    std::cout << "[ENGINE] Asset Path: " << m_assetPath << std::endl;
 
-    // --- SETUP IMGUI ---
+    Rml::SetSystemInterface(&rmlSystem);
+    Rml::SetRenderInterface(&rmlRenderer);
+    
+    if (Rml::Initialise()) {
+
+        m_canvasInstancer = std::make_unique<InstancerSkiaCanvas>(this);
+        Rml::Factory::RegisterElementInstancer("skia-canvas", m_canvasInstancer.get());
+
+        m_colorPickerInstancer = std::make_unique<ColorPickerInstancer>();
+        Rml::Factory::RegisterElementInstancer("color-picker", m_colorPickerInstancer.get());
+
+        std::string base_font_path = getAssetPath() + "fonts/Roboto-Regular.ttf";
+        if(!Rml::LoadFontFace(base_font_path)){
+            fprintf(stderr, "Error loading font\n");
+        }
+        
+        rmlContext = Rml::CreateContext("main", Rml::Vector2i(w, h));
+        rmlContext->SetDensityIndependentPixelRatio(1.5f);
+    }
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;    
-    
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
     ImGui::StyleColorsDark();
-    ImGui_ImplSDL3_InitForOpenGL(window, gl_context);
+    ImGui_ImplSDL3_InitForOpenGL(m_window.getNativeWindow(), m_window.getGLContext());
     ImGui_ImplOpenGL3_Init("#version 330 core");
+
+    setupBindings();
+    m_window.show();
 
     return true;
 }
@@ -89,38 +104,107 @@ bool Engine::init() {
 void Engine::updateSkiaSurface(int width, int height) {
     if (!skiaContext) return;
 
-    // Definiamo il target di rendering (il Framebuffer di default di OpenGL, che è 0)
     GrGLFramebufferInfo framebufferInfo;
     framebufferInfo.fFBOID = 0; 
     framebufferInfo.fFormat = GL_RGBA8;
 
-    // Sintassi Skia 146: GrBackendRenderTargets (plurale)
     auto backendRenderTarget = GrBackendRenderTargets::MakeGL(width, height, 1, 8, framebufferInfo);
 
-    // Sintassi Skia 146: SkSurfaces (plurale)
     skiaSurface = SkSurfaces::WrapBackendRenderTarget(
-        skiaContext.get(),
-        backendRenderTarget,
-        kBottomLeft_GrSurfaceOrigin,
-        kRGBA_8888_SkColorType,
-        SkColorSpace::MakeSRGB(),
-        nullptr
+        skiaContext.get(), backendRenderTarget,
+        kBottomLeft_GrSurfaceOrigin, kRGBA_8888_SkColorType, SkColorSpace::MakeSRGB(), nullptr
     );
+
+    if (rmlContext) {
+        rmlContext->SetDimensions(Rml::Vector2i(width, height));
+    }
+}
+
+void Engine::setupBindings() {
+
+    m_events.subscribe<MouseMoveEvent>([this](const MouseMoveEvent& e) {
+        if (!rmlContext) return false;
+        return !rmlContext->ProcessMouseMove(e.x, e.y, 0);
+    }, EventDispatcher::Scope::Global);
+
+    m_events.subscribe<MouseButtonEvent>([this](const MouseButtonEvent& e) {
+        if (!rmlContext) return false;
+        int btnIndex = (int)e.button - 1;
+        if (e.pressed) return !rmlContext->ProcessMouseButtonDown(btnIndex, 0);
+        else return !rmlContext->ProcessMouseButtonUp(btnIndex, 0);
+    }, EventDispatcher::Scope::Global);
+
+    m_events.subscribe<MouseWheelEvent>([this](const MouseWheelEvent& e) {
+        if (!rmlContext) return false;
+        return !rmlContext->ProcessMouseWheel(-e.delta, 0);
+    }, EventDispatcher::Scope::Global);
+
+    m_events.subscribe<KeyEvent>([this](const KeyEvent& e) {
+
+        if (m_shortcuts.processEvent(e)) return false;
+
+        if (!rmlContext) return false;
+
+        auto rmlKey = InputMapper::InternalToRml(e.key);
+        int rmlMods = InputMapper::InternalModsToRml(e.mods);
+
+        if (e.pressed) return !rmlContext->ProcessKeyDown(rmlKey, rmlMods);
+        else return !rmlContext->ProcessKeyUp(rmlKey, rmlMods);
+    }, EventDispatcher::Scope::Global);
+
+    m_events.subscribe<TextInputEvent>([this](const TextInputEvent& e) {
+        if (!rmlContext) return false;
+        return !rmlContext->ProcessTextInput(e.text);
+    }, EventDispatcher::Scope::Global);
+
+    m_events.subscribe<QuitEvent>([this](const QuitEvent&) { quit(); return true; }, EventDispatcher::Scope::Global);
+
+    m_events.subscribe<WindowResizeEvent>([this](const WindowResizeEvent& e) {
+        updateSkiaSurface(e.width, e.height);
+        return true;
+    }, EventDispatcher::Scope::Global);
+
+    m_shortcuts.addGlobal(KeyCode::Z, Mod::Ctrl, [this]() {
+        m_commands.undo();
+    });
+    
+    m_shortcuts.addGlobal(KeyCode::Y, Mod::Ctrl, [this]() {
+        m_commands.redo();
+    });
 }
 
 SkCanvas* Engine::getCanvas() const {
     return skiaSurface ? skiaSurface->getCanvas() : nullptr;
 }
 
+bool Engine::isPointerOverBlockingUI() {
+    auto ctx = getUIContext(); 
+    if (!ctx) return false;
+
+    Rml::Element* currentEl = ctx->GetHoverElement();
+
+    while (currentEl) {
+        if (currentEl->HasAttribute("data-block")) {
+            return true; 
+        }
+        currentEl = currentEl->GetParentNode();
+    }
+
+    return false;
+}
+
 void Engine::quit() { isRunning = false; }
-void Engine::changeView(std::unique_ptr<IAppView> newView) { nextView = std::move(newView); }
+
 
 void Engine::run() {
     isRunning = true;
     SDL_Event event;
 
-    changeView(std::make_unique<ViewMainMenu>());
+    changeView<ViewMainMenu>();
+    
     Uint64 lastTime = SDL_GetTicks();
+
+    SDL_StartTextInput(m_window.getNativeWindow());
 
     while (isRunning) {
         Uint64 currentTime = SDL_GetTicks();
@@ -128,56 +212,56 @@ void Engine::run() {
         lastTime = currentTime;
 
         if (nextView) {
-            if (currentView) currentView->onExit(this);
+            if (currentView) currentView->exit();
+
+            m_commands.clear();
+            m_events.clearLocal();
+            m_shortcuts.clearLocal();
+
+            if (rmlContext) {
+                rmlContext->Update(); 
+            }
+
             currentView = std::move(nextView);
-            currentView->onEnter(this);
+            currentView->enter(this);
         }
 
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL3_ProcessEvent(&event);
-            if (event.type == SDL_EVENT_QUIT) quit();
-            
-            // Gestione del Resize per Skia!
-            if (event.type == SDL_EVENT_WINDOW_RESIZED || event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) {
-                int w, h;
-                SDL_GetWindowSizeInPixels(window, &w, &h);
-                updateSkiaSurface(w, h);
-            }
+            InputSystem::processSDLBytEvent(event, m_events);
         }
 
-        // 1. Pulisci lo schermo (con Skia)
+        if (skiaContext) skiaContext->resetContext();
+
         SkCanvas* canvas = getCanvas();
         if (canvas) {
-            canvas->clear(SkColorSetARGB(255, 30, 30, 30)); // Sfondo grigio scuro
+            canvas->clear(SkColorSetARGB(255, 20, 40, 60));
         }
 
-        // 2. Prepara ImGui
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL3_NewFrame();
-        ImGui::NewFrame();
-        
-        ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
-
-        // 3. Esegui la logica della View (che userà sia SkCanvas che ImGui)
-        if (currentView) {
-            currentView->onUpdate(this, deltaTime);
+        if (rmlContext) rmlContext->Update(); 
+        if (rmlContext && canvas) {
+            rmlRenderer.SetCanvas(canvas);
+            rmlContext->Render();
         }
 
-        // 4. Flush di Skia (forza il rendering di tutto quello che hai disegnato finora)
-        if (skiaContext) {
-            skiaContext->flush();
+        if (skiaContext) skiaContext->flush();
+
+        if (true) {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplSDL3_NewFrame();
+            ImGui::NewFrame();
+
+            if (currentView) currentView->update(deltaTime);
+
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         }
 
-        // 5. Renderizza ImGui *sopra* Skia
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        // 6. Swap!
-        SDL_GL_SwapWindow(window);
+        m_window.swap();
     }
     
     if (currentView) {
-        currentView->onExit(this);
+        currentView->exit();
         currentView.reset();
     }
 }

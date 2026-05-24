@@ -1,0 +1,26 @@
+<rml>
+<head>
+    <link type="text/rcss" href="style.rcss"/>
+    <style>
+        .panel-container { background: #2c3e50; border: 2px #e67e22; border-radius: 10px; color: white; }
+        .prop-row { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .inspector-group-title { font-size: 22px; color: #e67e22; margin-top: 20px; margin-bottom: 15px; font-weight: bold; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px;}
+        input { background: #34495e; border: 1px solid #7f8c8d; color: white; padding: 8px; width: 200px; font-size: 18px; }
+        button { display: block; width: 100%; padding: 15px; background: #27ae60; color: white; margin-top: 25px; cursor: pointer; font-size: 18px; font-weight: bold; border: none;}
+        button.cancel { background: #c0392b; margin-top: 10px; }
+        button:hover { filter: brightness(1.2); }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+        <div class="panel-container" style="width: 500px; padding: 40px;">
+            <h1 style="text-align: center; margin-bottom: 30px; color: #e67e22; font-size: 30px;">EDITOR PERSONAGGIO</h1>
+            
+            <div id="form_container"></div>
+            
+            <button id="btn_save">SALVA NEL DATABASE</button>
+            <button id="btn_cancel" class="cancel">ANNULLA E TORNA ALL'HUB</button>
+        </div>
+    </div>
+</body>
+</rml>

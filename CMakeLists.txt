@@ -4,12 +4,20 @@ project(DnDMaster VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(MSVC)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi /Ob0 /Od /RTC1")
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")
+else()
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+endif()
+
 # 1. Trova i pacchetti scaricati da vcpkg
 find_package(SDL3 REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(unofficial-skia CONFIG REQUIRED)
 find_package(unofficial-enet CONFIG REQUIRED)
+find_package(RmlUi CONFIG REQUIRED)
 
 # Per SQLite3 usiamo il modulo standard di CMake, che vcpkg intercetta correttamente
 find_package(SQLite3 REQUIRED)
@@ -37,7 +45,10 @@ target_link_libraries(DnDMaster PRIVATE
     SQLite::SQLite3
     unofficial::skia::skia
     glad::glad
+    RmlUi::RmlUi         # <--- Sostituisci con la R e U maiuscole
+    RmlUi::Debugger
 )
+
 
 # --- Configurazione CPack (Installazione) ---
 include(InstallRequiredSystemLibraries)
@@ -59,3 +70,10 @@ else()
 endif()
 
 include(CPack)
+
+add_custom_target(copy_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:DnDMaster>/assets
+    COMMENT "Copia della cartella assets nella directory di output..."
+)
+add_dependencies(DnDMaster copy_assets)

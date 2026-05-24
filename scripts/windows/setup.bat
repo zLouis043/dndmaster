@@ -2,8 +2,11 @@
 setlocal
 cd /d "%~dp0\..\.."
 
+echo === Pulizia Vecchia Build ===
+if exist build rd /s /q build
+
 echo === Bootstrapping vcpkg ===
-call vcpkg\bootstrap-vcpkg.bat -disableMetrics
+call vendor\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 if %ERRORLEVEL% neq 0 (
     echo [ERRORE] Fallito il bootstrap di vcpkg.
     pause
@@ -12,7 +15,8 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo === Configuring CMake ===
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug
+
+cmake -G "Visual Studio 17 2022" -A x64 -B build -S . -DCMAKE_TOOLCHAIN_FILE=vendor/vcpkg/scripts/buildsystems/vcpkg.cmake
 if %ERRORLEVEL% neq 0 (
     echo [ERRORE] Configurazione CMake fallita.
     pause

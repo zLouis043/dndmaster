@@ -1,11 +1,19 @@
 #pragma once
 #include <SDL3/SDL.h>
 #include <memory>
-#include "../data/DatabaseEngine.h"
-
+#include "../data/db/DatabaseEngine.h"
 #include <include/core/SkRefCnt.h>
 
-// Forward declarations per Skia
+#include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementInstancer.h>
+#include "../ui/backend/RmlSystem.h"
+#include "../ui/backend/RmlSkiaRenderer.h"
+
+#include "./events/EventDispatcher.h"
+#include "./window/window.h"
+#include "./commands/CommandManager.h"
+#include "./input/ShortcutManager.h"
+
 class GrDirectContext;
 class SkSurface;
 
@@ -20,28 +28,45 @@ public:
     void run();
     void quit();
     
-    void changeView(std::unique_ptr<IAppView> newView);
+    template <typename View, typename... Args>
+    void changeView(Args... args) { nextView = std::make_unique<View>(std::forward<Args>(args)...); }
     DatabaseEngine& getDB() { return dbEngine; };
 
-    // Getter per Skia: la View chiederà il "Canvas" su cui disegnare!
     class SkCanvas* getCanvas() const;
+    Window getWindow() { return m_window; }
 
-    SDL_Window* getWindow() { return window;}
+    Rml::Context* getUIContext() { return rmlContext; }
+    EventDispatcher& getEvents() { return m_events; }
+    CommandManager& getCommands() { return m_commands; }
+    ShortcutManager& getShortcuts() { return m_shortcuts; }
+    const std::string& getAssetPath() const { return m_assetPath; }
+
+    bool isPointerOverBlockingUI();
 
 private:
-    SDL_Window* window = nullptr;
-    SDL_GLContext gl_context = nullptr;
+    Window m_window;
+    EventDispatcher m_events;
+    ShortcutManager m_shortcuts;
+    CommandManager m_commands;
+
     bool isRunning = false;
     
-    // Oggetti centrali di Skia
     sk_sp<GrDirectContext> skiaContext;
     sk_sp<SkSurface> skiaSurface;
+
+    RmlSystem rmlSystem;
+    RmlSkiaRenderer rmlRenderer;
+    Rml::Context* rmlContext = nullptr;
 
     std::unique_ptr<IAppView> currentView;
     std::unique_ptr<IAppView> nextView; 
 
     DatabaseEngine dbEngine;
+    std::string m_assetPath;
 
-    // Metodo helper per ricreare la superficie se la finestra viene ridimensionata
+    std::unique_ptr<Rml::ElementInstancer> m_canvasInstancer;
+    std::unique_ptr<Rml::ElementInstancer> m_colorPickerInstancer;
+
     void updateSkiaSurface(int width, int height);
+    void setupBindings();
 };
