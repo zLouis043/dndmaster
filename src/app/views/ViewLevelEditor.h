@@ -19,13 +19,11 @@ private:
     MapEntity currentMap;
     ToolManager m_toolManager;
 
-    // Trasformazioni Telecamera
     float zoom = 1.0f;
     float panX = 0.0f, panY = 0.0f;
     bool isPanning = false;
     float mouseX = 0.0f, mouseY = 0.0f;
 
-    // Metodi privati interni
     void loadFromDb();
     void saveToDb();
     void updateSettingsPanel();

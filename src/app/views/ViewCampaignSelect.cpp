@@ -7,9 +7,7 @@
 #include "../../data/entities/MapEntity.h"
 
 void ViewCampaignSelect::onEnter() {
-    // 1. Colleghiamo le lambda C++ che verranno eseguite al click dei bottoni generati
     m_formData.createAction = [this]() {
-        // Leggiamo cosa ha scritto l'utente nel form generato
         writeUI(&m_formData, "form_container"); 
         if (!m_formData.name.empty()) {
             setupDatabase(m_formData.name + ".dndcamp");
@@ -20,7 +18,6 @@ void ViewCampaignSelect::onEnter() {
         setupDatabase("test_campaign.dndcamp");
     };
 
-    // 2. Montiamo la struttura: verranno generati un input text e due bottoni!
     mount("campaign_form_mount", &m_formData, "form_container");
 }
 

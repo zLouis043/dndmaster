@@ -6,7 +6,6 @@
 #include "../../core/engine.h"
 
 void ViewCampaignHub::onEnter() {
-    // --- NAVIGAZIONE TABS ---
     auto switchTab = [this](const std::string& activePanel, const std::string& activeBtn) {
         for (auto p : {"panel_sessions", "panel_characters", "panel_maps"}) 
             if (auto el = getDocument()->GetElementById(p)) el->SetProperty("display", "none");
@@ -22,7 +21,6 @@ void ViewCampaignHub::onEnter() {
     bindEvent("tab_btn_maps", Rml::EventId::Click, [=](Rml::Event&) { switchTab("panel_maps", "tab_btn_maps"); });
     bindEvent("btn_back_menu", Rml::EventId::Click, [this](Rml::Event&) { getEngine()->changeView<ViewMainMenu>(); });
 
-    // --- AZIONI GLOBALI ---
     bindEvent("btn_new_session", Rml::EventId::Click, [this](Rml::Event&) {
         SessionEntity newSession; newSession.title = "Sessione " + std::to_string(allSessions.size() + 1);
         getEngine()->getDB().save(newSession); refreshData();
@@ -39,7 +37,6 @@ void ViewCampaignHub::onEnter() {
         if (selectedSessionId != -1) getEngine()->changeView<ViewSessionDashboard>(selectedSessionId);
     });
 
-    // --- DEFINIZIONE LISTE DINAMICHE TRAMITE DYINSPECTABLE ---
     m_dySessions.define([this](IInspector& ins, SessionEntity& sess) {
         std::function<void()> onClick = [this, id = sess.id]() { defer([this, id]() { selectSession(id); }); };
         std::string cls = (selectedSessionId == sess.id) ? "list-item selected" : "list-item";
@@ -115,7 +112,6 @@ void ViewCampaignHub::selectSession(int id) {
         title->SetInnerRML(currentSession.title);
     }
 
-    // ORM in azione!
     sessionNPCs = getEngine()->getDB().getManyToMany<NpcEntity>("SESSION_NPC", "session_id", "npc_id", id);
 
     rosterOutNPCs.clear();

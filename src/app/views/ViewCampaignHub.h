@@ -20,7 +20,7 @@ private:
     std::vector<MapEntity> allMaps;
     
     std::vector<NpcEntity> sessionNPCs;
-    std::vector<NpcEntity> rosterOutNPCs; // Aggiunto per tracciare chi sta fuori!
+    std::vector<NpcEntity> rosterOutNPCs;
 
     DyInspectable<SessionEntity> m_dySessions;
     DyInspectable<NpcEntity> m_dyCharacters;

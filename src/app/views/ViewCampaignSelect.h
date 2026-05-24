@@ -14,7 +14,6 @@ protected:
 private:
     void setupDatabase(const std::string& dbName);
 
-    // Struttura fittizia che l'AutoInspector userà per generare il Form
     struct CampaignFormData : public IInspectable {
         std::string name = "";
         std::function<void()> createAction;
