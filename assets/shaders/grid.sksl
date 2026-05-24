@@ -1,0 +1,35 @@
+uniform float2 resolution;
+uniform float4 color;
+uniform float zoom;
+uniform float2 pan;
+uniform float gridStep;
+
+half4 main(float2 fragCoord) {
+    float2 worldPos = (fragCoord - pan) / zoom;
+    float thickness = 1.0 / zoom;
+    half4 finalColor = half4(0);
+
+    float steps[3];
+    steps[0] = gridStep * 25.0;
+    steps[1] = gridStep * 5.0;
+    steps[2] = gridStep;
+
+    for (int i = 0; i < 3; ++i) {
+        float currentStep = steps[i];
+        float pixelStep = currentStep * zoom;
+
+        float alpha = clamp((pixelStep - 10.0) / 40.0, 0.0, 0.5);
+        if (i == 0) alpha = max(alpha, 0.1);
+        
+        if (alpha > 0.01) {
+            float2 dist = abs(fract(worldPos / currentStep + 0.5) - 0.5) * currentStep;
+            
+            if (dist.x < thickness || dist.y < thickness) {
+                half4 layerColor = half4(color.rgb * alpha, alpha);
+                finalColor = max(finalColor, layerColor);
+            }
+        }
+    }
+    
+    return finalColor;
+}

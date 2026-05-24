@@ -13,6 +13,7 @@
 #include "./window/window.h"
 #include "./commands/CommandManager.h"
 #include "./input/ShortcutManager.h"
+#include "./assets/AssetManager.h"
 
 class GrDirectContext;
 class SkSurface;
@@ -39,6 +40,7 @@ public:
     EventDispatcher& getEvents() { return m_events; }
     CommandManager& getCommands() { return m_commands; }
     ShortcutManager& getShortcuts() { return m_shortcuts; }
+    AssetManager& getAssets() { return m_assets; }
     const std::string& getAssetPath() const { return m_assetPath; }
 
     bool isPointerOverBlockingUI();
@@ -48,6 +50,7 @@ private:
     EventDispatcher m_events;
     ShortcutManager m_shortcuts;
     CommandManager m_commands;
+    AssetManager m_assets;
 
     bool isRunning = false;
     
@@ -57,7 +60,7 @@ private:
     RmlSystem rmlSystem;
     RmlSkiaRenderer rmlRenderer;
     Rml::Context* rmlContext = nullptr;
-
+    
     std::unique_ptr<IAppView> currentView;
     std::unique_ptr<IAppView> nextView; 
 

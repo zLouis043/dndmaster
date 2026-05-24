@@ -7,8 +7,12 @@
 #include "../tools/implementations/ToolPlaceToken.h"
 #include "../tools/implementations/ToolErase.h"
 
+#include "../../data/assets/ShaderAsset.h"
+
 void ViewLevelEditor::onEnter() {
     loadFromDb();
+
+    getEngine()->getAssets().load<sk_sp<SkRuntimeEffect>>("vtt_grid", "shaders/grid.sksl");
 
     m_toolManager.init(getEngine());
     m_toolManager.registerTool<ToolDrawWall>();
@@ -120,37 +124,27 @@ SkPoint ViewLevelEditor::screenToWorld(SkPoint screenPos) {
 
 void ViewLevelEditor::handleCanvasDraw(SkCanvas* canvas, float width, float height) {
     canvas->save();
-    canvas->translate(panX, panY);
-    canvas->scale(zoom, zoom);
 
-    float baseStep = (float)currentMap.gridSize;
-
-    float steps[] = { baseStep * 25.0f, baseStep * 5.0f, baseStep };
-
-    for (int i = 0; i < 3; ++i) {
-        float currentStep = steps[i];
-        float pixelStep = currentStep * zoom;
-        
-        float alpha = std::clamp((pixelStep - 10.0f) / 40.0f, 0.0f, 0.5f);
-        
-        if (i == 0) alpha = std::max(alpha, 0.1f); 
-        
-        if (alpha <= 0.01f) continue;
+    auto gridEffect = getEngine()->getAssets().get<sk_sp<SkRuntimeEffect>>("vtt_grid");
+    if (gridEffect) {
+        SkRuntimeShaderBuilder builder(gridEffect);
+        builder.uniform("resolution") = SkV2{width, height};
+        builder.uniform("color")      = SkV4{0.8f, 0.8f, 0.8f, 0.3f};
+        builder.uniform("zoom")       = zoom;
+        builder.uniform("pan")        = SkV2{panX, panY};
+        builder.uniform("gridStep")   = (float)currentMap.gridSize;
 
         SkPaint gridPaint;
-        gridPaint.setColor(SkColorSetARGB((uint8_t)(alpha * 255), 200, 200, 200));
-        gridPaint.setStrokeWidth(1.0f / zoom);
-
-        float startX = std::floor((-panX) / (zoom * currentStep)) * currentStep;
-        float startY = std::floor((-panY) / (zoom * currentStep)) * currentStep;
-        float endX = (width - panX) / zoom;
-        float endY = (height - panY) / zoom;
-
-        for (float x = startX; x <= endX; x += currentStep)
-            canvas->drawLine(SkPoint::Make(x, startY), SkPoint::Make(x, endY), gridPaint);
-        for (float y = startY; y <= endY; y += currentStep)
-            canvas->drawLine(SkPoint::Make(startX, y), SkPoint::Make(endX, y), gridPaint);
+        gridPaint.setShader(builder.makeShader());
+        
+        canvas->drawRect(SkRect::MakeWH(width, height), gridPaint);
     }
+    canvas->restore(); 
+
+    canvas->save(); 
+
+    canvas->translate(panX, panY);
+    canvas->scale(zoom, zoom);
 
     MapRenderingEngine::render(canvas, currentMap.elements, zoom);
     if (!currentMap.selectedElement) m_toolManager.drawGhost(canvas, zoom);

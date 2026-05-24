@@ -64,6 +64,8 @@ bool Engine::init() {
     }
     std::cout << "[ENGINE] Asset Path: " << m_assetPath << std::endl;
 
+    m_assets.setBasePath(getAssetPath());
+
     Rml::SetSystemInterface(&rmlSystem);
     Rml::SetRenderInterface(&rmlRenderer);
     
