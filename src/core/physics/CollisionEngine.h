@@ -1,62 +1,90 @@
 #pragma once
-#include "../../data/elements/IMapElement.h"
 #include "SpatialGrid.h"
+#include "../ecs/World.h"
+#include "../../data/elements/IMapElement.h"
 #include <include/core/SkPoint.h>
+#include <include/core/SkRect.h>
 #include <vector>
-#include <memory>
+#include <algorithm>
+#include <cmath>
 
 class CollisionEngine {
-public:
-    static std::shared_ptr<IMapElement> hitTest(const SpatialGrid& grid, const std::vector<std::shared_ptr<IMapElement>>& allElements, SkPoint mousePos, float threshold) {
-        std::vector<std::shared_ptr<IMapElement>> candidates = allElements;
-        
-        if (allElements.size() > 50) {
-            SkRect queryRect = SkRect::MakeLTRB(mousePos.x() - threshold, mousePos.y() - threshold, mousePos.x() + threshold, mousePos.y() + threshold);
-            candidates = grid.query(queryRect);
-        }
-
-        for (auto it = candidates.rbegin(); it != candidates.rend(); ++it) {
-            if (checkCollision((*it)->getCollider(), (*it).get(), mousePos, threshold)) return *it;
-        }
-        return nullptr;
-    }
-
-    static std::vector<std::shared_ptr<IMapElement>> hitTestMulti(const SpatialGrid& grid, const std::vector<std::shared_ptr<IMapElement>>& allElements, SkPoint mousePos, float radius) {
-        std::vector<std::shared_ptr<IMapElement>> hits;
-        std::vector<std::shared_ptr<IMapElement>> candidates = allElements;
-
-        if (allElements.size() > 50) {
-            SkRect queryRect = SkRect::MakeLTRB(mousePos.x() - radius, mousePos.y() - radius, mousePos.x() + radius, mousePos.y() + radius);
-            candidates = grid.query(queryRect);
-        }
-
-        for (const auto& el : candidates) {
-            if (checkCollision(el->getCollider(), el.get(), mousePos, radius)) {
-                hits.push_back(el);
-            }
-        }
-        return hits;
-    }
-
 private:
-    static bool checkCollision(const CollisionDescriptor& col, const IMapElement* element, SkPoint point, float threshold) {
-        switch (col.type) {
-            case ColliderType::CIRCLE: {
-                if (col.points.empty()) return false;
-                return SkPoint::Distance(point, col.points[0]) <= (col.radiusOrThickness + threshold);
-            }
-            case ColliderType::SEGMENT: {
-                if (col.points.size() < 2) return false;
-                SkPoint p1 = col.points[0]; SkPoint p2 = col.points[1];
-                float l2 = SkPoint::Distance(p1, p2) * SkPoint::Distance(p1, p2);
-                if (l2 == 0.0f) return SkPoint::Distance(point, p1) < (threshold + col.radiusOrThickness);
-                float t = ((point.x() - p1.x()) * (p2.x() - p1.x()) + (point.y() - p1.y()) * (p2.y() - p1.y())) / l2;
-                t = std::max(0.0f, std::min(1.0f, t));
-                SkPoint proj = SkPoint::Make(p1.x() + t * (p2.x() - p1.x()), p1.y() + t * (p2.y() - p1.y()));
-                return SkPoint::Distance(point, proj) <= (threshold + col.radiusOrThickness);
-            }
-            case ColliderType::CUSTOM: return element->customHitTest(point, threshold);
-            default: return false;
+    static float distancePointToSegment(SkPoint pt, SkPoint p1, SkPoint p2) {
+        float dx = p2.fX - p1.fX;
+        float dy = p2.fY - p1.fY;
+        float l2 = dx * dx + dy * dy;
+        
+        if (l2 == 0.0f) {
+            float dx0 = pt.fX - p1.fX;
+            float dy0 = pt.fY - p1.fY;
+            return std::sqrt(dx0 * dx0 + dy0 * dy0);
         }
+        
+        float t = ((pt.fX - p1.fX) * dx + (pt.fY - p1.fY) * dy) / l2;
+        t = std::max(0.0f, std::min(1.0f, t));
+        
+        float projX = p1.fX + t * dx;
+        float projY = p1.fY + t * dy;
+        
+        float dxProj = pt.fX - projX;
+        float dyProj = pt.fY - projY;
+        return std::sqrt(dxProj * dxProj + dyProj * dyProj);
+    }
+
+    static bool checkCollision(SkPoint queryCenter, float queryRadius, const CollisionDescriptor& desc) {
+        if (desc.points.empty()) return false;
+
+        if (desc.type == ColliderType::CIRCLE) {
+            float dx = queryCenter.fX - desc.points[0].fX;
+            float dy = queryCenter.fY - desc.points[0].fY;
+            float dist = std::sqrt(dx * dx + dy * dy);
+            return dist <= (queryRadius + desc.radiusOrThickness);
+        } 
+        else if (desc.type == ColliderType::SEGMENT) {
+            if (desc.points.size() < 2) return false;
+            float dist = distancePointToSegment(queryCenter, desc.points[0], desc.points[1]);
+            return dist <= (queryRadius + (desc.radiusOrThickness / 2.0f));
+        }
+        
+        return false;
+    }
+
+public:
+    static EntityId hitTest(const SpatialGrid& grid, const World<IMapElement>& world, SkPoint pt) {
+        float clickRadius = 2.0f;
+        SkRect queryRect = SkRect::MakeLTRB(pt.fX - clickRadius, pt.fY - clickRadius, 
+                                            pt.fX + clickRadius, pt.fY + clickRadius);
+                                            
+        std::vector<EntityId> candidates = grid.query(queryRect);
+        EntityId hitId = 0;
+        
+        world.queryReverseHit([&](EntityId id, IMapElement& el) {
+            if (std::find(candidates.begin(), candidates.end(), id) == candidates.end()) return false;
+            
+            if (checkCollision(pt, clickRadius, el.getCollider())) {
+                hitId = id;
+                return true; 
+            }
+            return false;
+        });
+        
+        return hitId;
+    }
+
+    static std::vector<EntityId> hitTestMulti(const SpatialGrid& grid, const World<IMapElement>& world, SkPoint pt, float radius) {
+        SkRect queryRect = SkRect::MakeLTRB(pt.fX - radius, pt.fY - radius, 
+                                            pt.fX + radius, pt.fY + radius);
+        std::vector<EntityId> candidates = grid.query(queryRect);
+        std::vector<EntityId> results;
+        
+        for (EntityId id : candidates) {
+            if (world.has(id)) {
+                if (checkCollision(pt, radius, world.get(id).getCollider())) {
+                    results.push_back(id);
+                }
+            }
+        }
+        return results;
     }
 };

@@ -4,6 +4,7 @@
 #include <variant>
 #include <vector>
 #include <include/core/SkPoint.h>
+#include <include/core/SkRect.h>
 
 enum class DrawType { CIRCLE, SEGMENT, PATH, RECT };
 enum class ColliderType { CIRCLE, SEGMENT, PATH, CUSTOM };
@@ -29,4 +30,29 @@ public:
     ColliderType type;
     std::vector<SkPoint> points; 
     float radiusOrThickness = 0.0f;
+
+    SkRect getBounds() const {
+        if (points.empty()) {
+            return SkRect::MakeEmpty();
+        }
+
+        float minX = points[0].fX;
+        float minY = points[0].fY;
+        float maxX = points[0].fX;
+        float maxY = points[0].fY;
+
+        for (size_t i = 1; i < points.size(); ++i) {
+            if (points[i].fX < minX) minX = points[i].fX;
+            if (points[i].fY < minY) minY = points[i].fY;
+            if (points[i].fX > maxX) maxX = points[i].fX;
+            if (points[i].fY > maxY) maxY = points[i].fY;
+        }
+
+        minX -= radiusOrThickness;
+        minY -= radiusOrThickness;
+        maxX += radiusOrThickness;
+        maxY += radiusOrThickness;
+
+        return SkRect::MakeLTRB(minX, minY, maxX, maxY);
+    }
 };

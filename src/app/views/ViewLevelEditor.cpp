@@ -41,7 +41,8 @@ void ViewLevelEditor::onEnter() {
     });
     
     bindEvent("btn_reset", Rml::EventId::Click, [this](Rml::Event&) {
-        currentMap.elements.clear();
+        currentMap.world.clear();
+        currentMap.grid.clear();
         getEngine()->getCommands().clear();
     });
 
@@ -97,9 +98,12 @@ void ViewLevelEditor::updateSettingsPanel() {
     mount("toolbar_mount", &m_toolManager, "tool_list");
     
     unmount("settings_mount");
-    if (currentMap.selectedElement) {
-        mount("settings_mount", currentMap.selectedElement.get(), "tool-settings");
-    } else if (auto activeTool = m_toolManager.getActiveTool()) {
+    if (currentMap.selectedEntityId != 0) {
+        auto el = currentMap.world.getShared(currentMap.selectedEntityId);
+        if (el) {
+            mount("settings_mount", el.get(), "tool-settings"); 
+        }
+    }else if (auto activeTool = m_toolManager.getActiveTool()) {
         mount("settings_mount", activeTool.get(), "tool-settings");
     }
 }
@@ -114,7 +118,7 @@ void ViewLevelEditor::saveToDb() {
 
 void ViewLevelEditor::loadFromDb() {
     if (getEngine()->getDB().getById<MapEntity>(targetMapId, currentMap)) {
-        currentMap.markGridDirty(); 
+        currentMap.rebuildGrid();
     }
 }
 
@@ -146,8 +150,8 @@ void ViewLevelEditor::handleCanvasDraw(SkCanvas* canvas, float width, float heig
     canvas->translate(panX, panY);
     canvas->scale(zoom, zoom);
 
-    MapRenderingEngine::render(canvas, currentMap.elements, zoom);
-    if (!currentMap.selectedElement) m_toolManager.drawGhost(canvas, zoom);
+    MapRenderingEngine::render(canvas, currentMap.world, zoom);
+    if (currentMap.selectedEntityId == 0) m_toolManager.drawGhost(canvas, zoom);
 
     canvas->restore();
 }

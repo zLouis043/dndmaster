@@ -27,7 +27,7 @@ public:
     }
 
     bool onMouseDown(SkPoint worldPos, Engine* engine, MapEntity& map) override {
-        auto hits = CollisionEngine::hitTestMulti(map.getGrid(), map.elements, worldPos, radius);
+        auto hits = CollisionEngine::hitTestMulti(map.grid, map.world, worldPos, radius);
         
         if (!hits.empty()) {
             engine->getCommands().execute<CommandRemoveElement>(&map, hits);

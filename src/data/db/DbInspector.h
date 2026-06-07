@@ -31,10 +31,26 @@ public:
         value.inspect(*this);
     }
 
-    void onBeginArray(const std::string&, size_t&, const PropertyTags&) override { arrayIgnoreDepth++; }
+    void onBeginArray(const std::string& name, size_t& size, const PropertyTags& tags) override { 
+        #ifdef _DEBUG
+        if (arrayIgnoreDepth == 0) {
+            std::cerr << "[DB WARNING] Property '" << name 
+                        << "' is an array and will be ignored by the Db Inspector. " << std::endl;
+        }
+        #endif
+        arrayIgnoreDepth++;  
+    }
     void onArrayElement(size_t) override {}
     void onEndArray() override { arrayIgnoreDepth--; }
-    void onBeginPointer(const std::string&, std::string&, bool&, const PropertyTags&) override { arrayIgnoreDepth++; }
+    void onBeginPointer(const std::string& name, std::string& typeToken, bool& isNull, const PropertyTags& tags)  override { 
+        #ifdef _DEBUG
+            if (arrayIgnoreDepth == 0) {
+                std::cerr << "[DB WARNING] Property '" << name 
+                        << "' is a pointer and will be ignored by the Db Inspector. " << std::endl;
+            }
+        #endif
+        arrayIgnoreDepth++; 
+    }
     void onEndPointer() override { arrayIgnoreDepth--; }
 
     std::string createTableSQL() const {
@@ -92,10 +108,26 @@ public:
         if (arrayIgnoreDepth > 0 || tags.get<bool>("db-ignore", false)) return;
         value.inspect(*this);
     }
-    void onBeginArray(const std::string&, size_t&, const PropertyTags&) override { arrayIgnoreDepth++; }
+    void onBeginArray(const std::string& name, size_t& size, const PropertyTags& tags) override { 
+        #ifdef _DEBUG
+        if (arrayIgnoreDepth == 0) {
+            std::cerr << "[DB WARNING] Property '" << name 
+                        << "' is an array and will be ignored by the Db Inspector. " << std::endl;
+        }
+        #endif
+        arrayIgnoreDepth++;  
+    }
     void onArrayElement(size_t) override {}
     void onEndArray() override { arrayIgnoreDepth--; }
-    void onBeginPointer(const std::string&, std::string&, bool&, const PropertyTags&) override { arrayIgnoreDepth++; }
+    void onBeginPointer(const std::string& name, std::string& typeToken, bool& isNull, const PropertyTags& tags) override { 
+        #ifdef _DEBUG
+            if (arrayIgnoreDepth == 0) {
+                std::cerr << "[DB WARNING] Property '" << name 
+                        << "' is a pointer and will be ignored by the Db Inspector. " << std::endl;
+            }
+        #endif
+        arrayIgnoreDepth++; 
+    }
     void onEndPointer() override { arrayIgnoreDepth--; }
 };
 
@@ -124,9 +156,25 @@ public:
         if (arrayIgnoreDepth > 0 || tags.get<bool>("db-ignore", false)) return;
         value.inspect(*this);
     }
-    void onBeginArray(const std::string&, size_t&, const PropertyTags&) override { arrayIgnoreDepth++; }
+    void onBeginArray(const std::string& name, size_t& size, const PropertyTags& tags) override { 
+        #ifdef _DEBUG
+        if (arrayIgnoreDepth == 0) {
+            std::cerr << "[DB WARNING] Property '" << name 
+                        << "' is an array and will be ignored by the Db Inspector. " << std::endl;
+        }
+        #endif
+        arrayIgnoreDepth++;  
+    }
     void onArrayElement(size_t) override {}
     void onEndArray() override { arrayIgnoreDepth--; }
-    void onBeginPointer(const std::string&, std::string&, bool&, const PropertyTags&) override { arrayIgnoreDepth++; }
+    void onBeginPointer(const std::string& name, std::string& typeToken, bool& isNull, const PropertyTags& tags) override { 
+        #ifdef _DEBUG
+            if (arrayIgnoreDepth == 0) {
+                std::cerr << "[DB WARNING] Property '" << name 
+                        << "' is a pointer and will be ignored by the Db Inspector. " << std::endl;
+            }
+        #endif
+        arrayIgnoreDepth++; 
+    }
     void onEndPointer() override { arrayIgnoreDepth--; }
 };

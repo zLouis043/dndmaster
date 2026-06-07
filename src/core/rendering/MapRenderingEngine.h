@@ -1,5 +1,6 @@
 #pragma once
 #include "../../data/elements/IMapElement.h"
+#include "../../core/ecs/World.h"
 #include <include/core/SkCanvas.h>
 #include <include/core/SkPaint.h>
 #include <vector>
@@ -7,15 +8,13 @@
 
 class MapRenderingEngine {
 public:
-    static void render(SkCanvas* canvas, const std::vector<std::shared_ptr<IMapElement>>& elements, float zoom) {
-        for (const auto& element : elements) {
-            if (!element) continue;
-            
-            auto descriptors = element->getDrawDescriptors();
+    static void render(SkCanvas* canvas, const World<IMapElement>& world, float zoom) {
+        world.forEach([&](EntityId id, IMapElement& element) {
+            auto descriptors = element.getDrawDescriptors();
             for (const auto& desc : descriptors) {
                 renderDescriptor(canvas, desc, zoom);
             }
-        }
+        });
     }
 
 private:

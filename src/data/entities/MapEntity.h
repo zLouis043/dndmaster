@@ -1,6 +1,7 @@
 #pragma once
 #include "../inspector/Inspection.h"
 #include "../elements/IMapElement.h" 
+#include "../../core/ecs/World.h"
 #include "../../core/physics/SpatialGrid.h"
 #include <string>
 #include <vector>
@@ -15,25 +16,24 @@ public:
     std::string name = "Nuova Mappa";
     int gridSize = 50;
     
-    std::vector<std::shared_ptr<IMapElement>> elements; 
-    std::shared_ptr<IMapElement> selectedElement = nullptr;
-    
-private:
-    SpatialGrid m_spatialGrid;
-    bool m_isGridDirty = true;
+    World<IMapElement> world; 
+    SpatialGrid grid;
+
+    EntityId selectedEntityId = 0;
+
+    std::vector<std::shared_ptr<IMapElement>> _serialBuffer;
 
 public:
-    void selectElement(std::shared_ptr<IMapElement> el, Engine* engine);
+    MapEntity() : grid(100.0f) {}
+
+    void selectElement(EntityId id, Engine* engine);
     void clearSelection(Engine* engine);
 
-    void markGridDirty() { m_isGridDirty = true; }
-    
-    const SpatialGrid& getGrid() {
-        if (m_isGridDirty) {
-            m_spatialGrid.build(elements);
-            m_isGridDirty = false;
-        }
-        return m_spatialGrid;
+    void rebuildGrid() {
+        grid.clear();
+        world.forEach([this](EntityId id, IMapElement& el) {
+            grid.insert(id, el.getCollider().getBounds());
+        });
     }
 
     void inspect(IInspector& inspector) override;
