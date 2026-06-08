@@ -17,7 +17,6 @@
             border: 2px #e67e22;
             border-radius: 10px;
 
-            /* Centra il contenuto (H1 e Bottoni) dentro il box */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -28,11 +27,9 @@
             font-effect: outline(2px black);
             color: #e67e22;
             margin-bottom: 30px;
-            /* Assicuriamoci che il titolo occupi tutta la larghezza per centrarsi */
             width: 100%;
         }
         button {
-            /* I bottoni ora si centrano grazie all'align-items del container */
             display: block;
             width: 100%; 
             padding: 15px;
@@ -53,6 +50,7 @@
         <h1>D&D MASTER</h1>
         <button id="btn_master">Workspace Master (Offline)</button>
         <button id="btn_player">Workspace Player (Offline)</button>
+        <button id="btn_host">Apri Sessione Online</button>
         <button id="btn_live">Unisci a Sessione Live</button>
         <button id="btn_exit">Esci Dal Gioco</button>
     </div>

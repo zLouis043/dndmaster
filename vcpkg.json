@@ -13,9 +13,9 @@
     },
     "nlohmann-json",
     "skia",
-    "enet",
     "sqlitecpp",
     "glad",
-    "rmlui"
+    "rmlui",
+    "ixwebsocket"
   ]
 }

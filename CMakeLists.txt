@@ -16,7 +16,6 @@ find_package(SDL3 REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(unofficial-skia CONFIG REQUIRED)
-find_package(unofficial-enet CONFIG REQUIRED)
 find_package(RmlUi CONFIG REQUIRED)
 
 # Per SQLite3 usiamo il modulo standard di CMake, che vcpkg intercetta correttamente
@@ -24,6 +23,8 @@ find_package(SQLite3 REQUIRED)
 find_package(SQLiteCpp CONFIG REQUIRED)
 
 find_package(glad CONFIG REQUIRED)
+
+find_package(ixwebsocket CONFIG REQUIRED)
 
 # 2. Trova tutti i file .cpp e .h ricorsivamente
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h")
@@ -40,14 +41,18 @@ target_link_libraries(DnDMaster PRIVATE
     SDL3::SDL3 
     imgui::imgui 
     nlohmann_json::nlohmann_json
-    unofficial::enet::enet
     SQLiteCpp
     SQLite::SQLite3
     unofficial::skia::skia
     glad::glad
     RmlUi::RmlUi         # <--- Sostituisci con la R e U maiuscole
     RmlUi::Debugger
+    ixwebsocket::ixwebsocket
 )
+
+if(WIN32)
+    target_link_libraries(DnDMaster PRIVATE bcrypt)
+endif()
 
 
 # --- Configurazione CPack (Installazione) ---

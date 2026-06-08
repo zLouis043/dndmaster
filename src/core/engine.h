@@ -14,6 +14,7 @@
 #include "./commands/CommandManager.h"
 #include "./input/ShortcutManager.h"
 #include "./assets/AssetManager.h"
+#include "../network/NetworkManager.h"
 
 class GrDirectContext;
 class SkSurface;
@@ -42,6 +43,7 @@ public:
     ShortcutManager& getShortcuts() { return m_shortcuts; }
     AssetManager& getAssets() { return m_assets; }
     const std::string& getAssetPath() const { return m_assetPath; }
+    NetworkManager& getNetwork() { return m_network; }
 
     bool isPointerOverBlockingUI();
 
@@ -51,6 +53,7 @@ private:
     ShortcutManager m_shortcuts;
     CommandManager m_commands;
     AssetManager m_assets;
+    NetworkManager m_network;
 
     bool isRunning = false;
     

@@ -19,6 +19,8 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_opengl3.h>
 
+#include <ixwebsocket/IXNetSystem.h>
+
 #include "../ui/framework/ElementSkiaCanvas.h"
 #include "../ui/framework/ElementColorPicker.h"
 #include "./input/InputSystem.h"
@@ -37,6 +39,8 @@ Engine::~Engine() {
     skiaSurface.reset();
     skiaContext.reset();
 
+    ix::uninitNetSystem();
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
@@ -48,8 +52,8 @@ bool Engine::init() {
     
     if (!m_window.init()) return false;
 
-    auto interface = GrGLMakeNativeInterface();
-    skiaContext = GrDirectContexts::MakeGL(interface);
+    auto iface = GrGLMakeNativeInterface();
+    skiaContext = GrDirectContexts::MakeGL(iface);
     int w, h;
     SDL_GetWindowSizeInPixels(m_window.getNativeWindow(), &w, &h);
     updateSkiaSurface(w, h);
@@ -100,6 +104,7 @@ bool Engine::init() {
     setupBindings();
     m_window.show();
 
+    ix::initNetSystem(); 
     return true;
 }
 
@@ -254,6 +259,7 @@ void Engine::run() {
             ImGui::NewFrame();
 
             if (currentView) currentView->update(deltaTime);
+            m_network.poll();
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
