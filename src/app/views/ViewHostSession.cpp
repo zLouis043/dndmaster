@@ -4,29 +4,30 @@
 #include "ViewMainMenu.h"
 
 void ViewHostSession::onEnter() {
-    // Mostra spinner di caricamento
     if (auto el = getDocument()->GetElementById("status"))
         el->SetInnerRML("Apertura sessione in corso...");
 
-    // Apre la sessione — il callback arriva quando PocketBase risponde
     getEngine()->getNetwork().hostSession(
-        // Player vuole unirsi
         [this](const std::string& id, const std::string& hash) {
             std::cout << "[NET] JoinRequest da: " << id << std::endl;
-            return true; // per ora accetta tutti — qui andrà la validazione hash
+            return true;
         },
 
-        // Player disconnesso
         [this](const std::string& id) {
             std::cout << "[NET] Player disconnesso: " << id << std::endl;
         },
 
-        // Messaggio ricevuto
         [this](const NetMessage& msg) {
             std::cout << "[NET] Messaggio: " << (int)msg.type << std::endl;
+
+            if (msg.type == MessageType::AssetAvailable) {
+                std::string hash = msg.payload.value("hash", "");
+                if (!hash.empty()) {
+                    getEngine()->getNetwork().fetchAssetAsync(hash);
+                }
+            }
         },
 
-        // Sessione pronta — mostra il codice
         [this](const std::string& code) {
             defer([this, code]() {
                 if (auto el = getDocument()->GetElementById("status"))
@@ -38,7 +39,6 @@ void ViewHostSession::onEnter() {
             });
         },
 
-        // Errore
         [this](const std::string& err) {
             defer([this, err]() {
                 if (auto el = getDocument()->GetElementById("status"))
@@ -51,11 +51,15 @@ void ViewHostSession::onEnter() {
         getEngine()->getNetwork().closeSession();
         getEngine()->changeView<ViewMainMenu>();
     });
+
+    bindEvent("btn_debug_map", Rml::EventId::Click, [this](Rml::Event&) {
+        std::cout << "[SISTEMA] Il Master sta avviando l'upload della mappa in background...\n";
+        std::vector<uint8_t> dummyMapData = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        getEngine()->getNetwork().publishAsset(dummyMapData, ".webp");
+    });
 }
 
 void ViewHostSession::onUpdate(float deltaTime) {}
 
 void ViewHostSession::onExit() {
-    // Non chiudiamo la sessione qui — la sessione deve sopravvivere
-    // alla navigazione verso ViewSessionDashboard
 }

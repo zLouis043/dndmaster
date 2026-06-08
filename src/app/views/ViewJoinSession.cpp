@@ -16,24 +16,26 @@ void ViewJoinSession::onEnter() {
 
         getEngine()->getNetwork().joinSession(
             code,
-            "Giocatore",    // qui andrà il nome reale dal personaggio
-            "hash-123",     // qui andrà l'hash reale del personaggio
+            "Giocatore",
+            "hash-123",
 
-            // Messaggio ricevuto
             [this](const NetMessage& msg) {
                 std::cout << "[NET] Messaggio: " << (int)msg.type << std::endl;
+                if (msg.type == MessageType::AssetAvailable) {
+                    std::string hash = msg.payload.value("hash", "");
+                    if (!hash.empty()) {
+                        getEngine()->getNetwork().fetchAssetAsync(hash);
+                    }
+                }
             },
 
-            // Connesso
             [this](const std::string& code) {
                 defer([this]() {
                     if (auto el = getDocument()->GetElementById("status"))
                         el->SetInnerRML("Connesso!");
-                    // getEngine()->changeView<ViewSessionPlayer>();
                 });
             },
 
-            // Errore
             [this](const std::string& err) {
                 defer([this, err]() {
                     if (auto el = getDocument()->GetElementById("status"))

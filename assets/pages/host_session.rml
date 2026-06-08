@@ -70,6 +70,7 @@
             <p id="session_code"></p>
             <p class="hint">Condividi questo codice con i tuoi giocatori</p>
         </div>
+        <button id="btn_debug_map">Invia Mappa di Test</button>
         <button id="btn_back">Torna al Menu</button>
     </div>
 </body>

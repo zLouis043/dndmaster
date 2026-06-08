@@ -105,6 +105,15 @@ bool Engine::init() {
     m_window.show();
 
     ix::initNetSystem(); 
+
+    m_network.setOnAssetReady([](const std::string& hash, const std::vector<uint8_t>& data) {
+        std::cout << "\n============================================\n";
+        std::cout << "[GRAFICA] Nuova mappa ricevuta e pronta!\n";
+        std::cout << "          Hash: " << hash << "\n";
+        std::cout << "          Dimensione: " << data.size() << " bytes\n";
+        std::cout << "============================================\n\n";
+    });
+
     return true;
 }
 

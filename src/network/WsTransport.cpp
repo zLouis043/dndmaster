@@ -328,6 +328,9 @@ bool WsTransport::uploadAsset(const std::string& hash,
 
     std::string body(data.begin(), data.end());
     auto res = http.post(m_httpUrl + "/asset/" + hash, body, args);
+
+    if (!res) return false;
+
     return res->statusCode == 200 || res->statusCode == 201;
 }
 
@@ -338,7 +341,7 @@ bool WsTransport::downloadAsset(const std::string& hash,
     auto args = std::make_shared<ix::HttpRequestArgs>();
     auto res  = http.get(m_httpUrl + "/asset/" + hash, args);
 
-    if (res->statusCode != 200) return false;
+    if (!res || res->statusCode != 200) return false;
     outData.assign(res->body.begin(), res->body.end());
     return true;
 }
